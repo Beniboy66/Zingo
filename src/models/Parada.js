@@ -9,7 +9,12 @@ const paradaSchema = new mongoose.Schema({
   ubicacion: {
     type: { type: String, enum: ['Point'], default: 'Point' },
     coordinates: { type: [Number], required: true } // [lng, lat]
-  }
+  },
+  // Infraestructura
+  techada: { type: Boolean, default: false },
+  iluminacion: { type: Boolean, default: false },
+  asientos: { type: Boolean, default: false },
+  rampa: { type: Boolean, default: false },
 }, { timestamps: true });
 
 paradaSchema.index({ ubicacion: '2dsphere' });

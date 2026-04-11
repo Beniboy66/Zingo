@@ -193,9 +193,19 @@ export default function DetalleRutaScreen({ route, navigation }) {
             <View style={{ flex: 1 }}>
               <Text style={estilos.paradaNombre}>
                 {p.nombre}
-                {p.esTerminal && <Text style={{ color: colores.textoSecundario, fontWeight: '400' }}> (Terminal)</Text>}
+                <Text style={{ color: p.esTerminal ? colores.error : colores.primario, fontWeight: '600', fontSize: 11 }}>
+                  {' '}{p.esTerminal ? 'TERMINAL' : 'PASO'}
+                </Text>
               </Text>
               {p.referencia && <Text style={estilos.paradaRef}>{p.referencia}</Text>}
+              {(p.techada || p.iluminacion || p.asientos || p.rampa) && (
+                <View style={estilos.amenidades}>
+                  {p.techada && <View style={estilos.amenidad}><Ionicons name="home-outline" size={11} color={colores.primario} /><Text style={estilos.amenidadTexto}>Techada</Text></View>}
+                  {p.iluminacion && <View style={estilos.amenidad}><Ionicons name="bulb-outline" size={11} color={colores.primario} /><Text style={estilos.amenidadTexto}>Iluminada</Text></View>}
+                  {p.asientos && <View style={estilos.amenidad}><Ionicons name="person-outline" size={11} color={colores.primario} /><Text style={estilos.amenidadTexto}>Asientos</Text></View>}
+                  {p.rampa && <View style={estilos.amenidad}><Ionicons name="accessibility-outline" size={11} color={colores.primario} /><Text style={estilos.amenidadTexto}>Rampa</Text></View>}
+                </View>
+              )}
             </View>
           </View>
         ))}
@@ -255,6 +265,9 @@ const estilos = StyleSheet.create({
   paradaNumeroTexto: { color: '#fff', fontSize: 12, fontWeight: '700' },
   paradaNombre: { fontSize: 15, fontWeight: '500', color: colores.texto },
   paradaRef: { fontSize: 13, color: colores.textoSecundario },
+  amenidades: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 },
+  amenidad: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#E8F0FE', borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2 },
+  amenidadTexto: { fontSize: 10, color: colores.primario, fontWeight: '500' },
   avisoItem: { flexDirection: 'row', gap: 10, backgroundColor: '#FFF8E1', borderRadius: 10, padding: 14, marginBottom: 8 },
   avisoTitulo: { fontSize: 14, fontWeight: '600', color: '#E65100' },
   avisoMensaje: { fontSize: 13, color: colores.texto, marginTop: 4, lineHeight: 18 },

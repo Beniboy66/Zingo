@@ -13,6 +13,10 @@ import SolicitudDetalle from './pages/admin/SolicitudDetalle';
 import RutasPendientes from './pages/admin/RutasPendientes';
 import Reportes from './pages/admin/Reportes';
 import Historial from './pages/admin/Historial';
+import Usuarios from './pages/admin/Usuarios';
+import Concesionarios from './pages/admin/Concesionarios';
+import SupervisionMapa from './pages/admin/SupervisionMapa';
+import Moderacion from './pages/admin/Moderacion';
 
 // Agencia
 import AgenciaDashboard from './pages/agencia/Dashboard';
@@ -84,6 +88,26 @@ function AppRoutes() {
       <Route path="/admin/reportes" element={
         <RutaProtegida roles={['super_admin']}>
           <AppLayout><Reportes /></AppLayout>
+        </RutaProtegida>
+      } />
+      <Route path="/admin/usuarios" element={
+        <RutaProtegida roles={['super_admin']}>
+          <AppLayout><Usuarios /></AppLayout>
+        </RutaProtegida>
+      } />
+      <Route path="/admin/concesionarios" element={
+        <RutaProtegida roles={['super_admin']}>
+          <AppLayout><Concesionarios /></AppLayout>
+        </RutaProtegida>
+      } />
+      <Route path="/admin/supervision" element={
+        <RutaProtegida roles={['super_admin']}>
+          <AppLayout><SupervisionMapa /></AppLayout>
+        </RutaProtegida>
+      } />
+      <Route path="/admin/moderacion" element={
+        <RutaProtegida roles={['super_admin']}>
+          <AppLayout><Moderacion /></AppLayout>
         </RutaProtegida>
       } />
       <Route path="/admin/historial" element={

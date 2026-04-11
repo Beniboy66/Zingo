@@ -11,7 +11,7 @@ exports.listar = async (req, res, next) => {
   } catch (error) { next(error); }
 };
 
-// GET /api/rutas/:id — Ver ruta con paradas
+// GET /api/rutas/:id — Ver ruta
 exports.obtener = async (req, res, next) => {
   try {
     const ruta = await Ruta.findById(req.params.id).populate('agenciaId', 'nombre');
@@ -21,9 +21,7 @@ exports.obtener = async (req, res, next) => {
     ruta.consultas += 1;
     await ruta.save();
 
-    const paradas = await Parada.find({ rutaId: ruta._id }).sort({ orden: 1 });
-
-    res.json({ exito: true, datos: { ruta, paradas } });
+    res.json({ exito: true, datos: ruta });
   } catch (error) { next(error); }
 };
 

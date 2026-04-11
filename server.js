@@ -17,6 +17,17 @@ app.use(express.urlencoded({ extended: true }));
 // Servir archivos estáticos (PDFs subidos)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Pre-cargar todos los modelos (los hooks de Ruta/Reporte/Usuario dependen de Notificacion/Historial)
+require('./src/models/Notificacion');
+require('./src/models/Historial');
+require('./src/models/Usuario');
+require('./src/models/Ruta');
+require('./src/models/Parada');
+require('./src/models/Reporte');
+require('./src/models/Aviso');
+require('./src/models/Favorito');
+require('./src/models/VotoReporte');
+
 // Rutas de la API
 app.use('/api/auth', require('./src/routes/auth.routes'));
 app.use('/api/rutas', require('./src/routes/rutas.routes'));

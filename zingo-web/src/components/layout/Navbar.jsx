@@ -30,8 +30,10 @@ export default function Navbar() {
   const enlaces = esAdmin ? [
     { ruta: '/admin/dashboard', texto: 'Dashboard' },
     { ruta: '/admin/solicitudes', texto: 'Solicitudes' },
-    { ruta: '/admin/rutas-pendientes', texto: 'Rutas' },
-    { ruta: '/admin/reportes', texto: 'Reportes' },
+    { ruta: '/admin/usuarios', texto: 'Usuarios' },
+    { ruta: '/admin/concesionarios', texto: 'Concesionarios' },
+    { ruta: '/admin/supervision', texto: 'Mapa' },
+    { ruta: '/admin/moderacion', texto: 'Moderacion' },
     { ruta: '/admin/historial', texto: 'Historial' },
   ] : esAgencia ? [
     { ruta: '/agencia/dashboard', texto: 'Mis Rutas' },
