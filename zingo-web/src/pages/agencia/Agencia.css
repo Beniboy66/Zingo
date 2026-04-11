@@ -1,0 +1,187 @@
+/* Ruta Card */
+.ruta-card {
+  background: var(--color-card);
+  border-radius: var(--radio-card);
+  box-shadow: var(--sombra-card);
+  padding: 20px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.ruta-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sombra-elevada);
+}
+
+.ruta-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.ruta-color {
+  width: 8px;
+  height: 40px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.ruta-card-body {
+  font-size: 0.85rem;
+  color: var(--color-texto-secundario);
+  margin-bottom: 16px;
+}
+
+.ruta-card-body div {
+  padding: 3px 0;
+}
+
+.ruta-card-footer {
+  display: flex;
+  gap: 8px;
+}
+
+.ruta-card-footer .btn {
+  flex: 1;
+  font-size: 0.8rem;
+  padding: 8px;
+}
+
+/* Editor de ruta */
+.editor-layout {
+  display: flex;
+  height: calc(100vh - 56px);
+}
+
+.editor-mapa {
+  flex: 1;
+  position: relative;
+}
+
+.editor-panel {
+  width: 400px;
+  background: var(--color-card);
+  border-left: 1px solid var(--color-borde);
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.editor-panel h2 {
+  margin-bottom: 20px;
+}
+
+.editor-panel .form-grupo {
+  margin-bottom: 14px;
+}
+
+.editor-panel .form-grupo label {
+  font-size: 0.8rem;
+}
+
+.editor-fila {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.editor-acciones {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-borde);
+}
+
+.editor-acciones .btn {
+  flex: 1;
+}
+
+/* Paradas lista */
+.paradas-lista {
+  margin-top: 20px;
+  border-top: 1px solid var(--color-borde);
+  padding-top: 16px;
+}
+
+.paradas-lista h3 {
+  font-size: 0.95rem;
+  margin-bottom: 12px;
+}
+
+.parada-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--color-fondo);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 0.85rem;
+}
+
+.parada-item .parada-orden {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-primario);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.parada-item .parada-info {
+  flex: 1;
+}
+
+.parada-item .parada-nombre {
+  font-weight: 500;
+}
+
+.parada-item .parada-ref {
+  font-size: 0.75rem;
+  color: var(--color-texto-secundario);
+}
+
+.parada-item .parada-acciones {
+  display: flex;
+  gap: 4px;
+}
+
+.parada-item .parada-acciones button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--color-texto-secundario);
+  padding: 4px;
+}
+
+.parada-item .parada-acciones button:hover {
+  color: var(--color-error);
+}
+
+/* Avisos */
+.aviso-form {
+  background: var(--color-card);
+  border-radius: var(--radio-card);
+  box-shadow: var(--sombra-card);
+  padding: 24px;
+  max-width: 600px;
+}
+
+@media (max-width: 768px) {
+  .editor-layout {
+    flex-direction: column;
+  }
+
+  .editor-panel {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--color-borde);
+    max-height: 50vh;
+  }
+}

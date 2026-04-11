@@ -1,0 +1,164 @@
+/* =============================================
+   ZINGO — Estilos Globales (Apple-like Design)
+   ============================================= */
+
+:root {
+  --color-primario: #007AFF;
+  --color-primario-hover: #0056CC;
+  --color-fondo: #F5F5F7;
+  --color-card: #FFFFFF;
+  --color-texto: #1D1D1F;
+  --color-texto-secundario: #86868B;
+  --color-exito: #34C759;
+  --color-advertencia: #FF9500;
+  --color-error: #FF3B30;
+  --color-borde: #E8E8ED;
+  --color-fondo-input: #F9F9FB;
+  --sombra-card: 0 2px 12px rgba(0, 0, 0, 0.08);
+  --sombra-elevada: 0 8px 32px rgba(0, 0, 0, 0.12);
+  --sombra-boton: 0 2px 8px rgba(0, 122, 255, 0.3);
+  --radio-card: 12px;
+  --radio-boton: 8px;
+  --radio-modal: 20px;
+  --radio-input: 8px;
+  --fuente: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--fuente);
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #C7C7CC; border-radius: 3px; }
+
+h1 { font-size: 2rem; font-weight: 700; letter-spacing: -0.5px; }
+h2 { font-size: 1.5rem; font-weight: 600; letter-spacing: -0.3px; }
+h3 { font-size: 1.17rem; font-weight: 600; }
+p { line-height: 1.6; }
+
+input, select, textarea {
+  font-family: var(--fuente);
+  font-size: 0.95rem;
+  padding: 12px 16px;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-input);
+  background: var(--color-fondo-input);
+  color: var(--color-texto);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  width: 100%;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--color-primario);
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+}
+textarea { resize: vertical; min-height: 100px; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-family: var(--fuente);
+  font-size: 0.95rem;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--radio-boton);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-primario { background: var(--color-primario); color: #fff; }
+.btn-primario:hover { background: var(--color-primario-hover); box-shadow: var(--sombra-boton); }
+.btn-primario:disabled { background: #B0D4FF; cursor: not-allowed; box-shadow: none; }
+.btn-secundario { background: transparent; color: var(--color-texto); border: 1px solid var(--color-borde); }
+.btn-secundario:hover { background: #F0F0F2; }
+.btn-exito { background: var(--color-exito); color: #fff; }
+.btn-exito:hover { background: #2DB84D; }
+.btn-error { background: var(--color-error); color: #fff; }
+.btn-error:hover { background: #E0352C; }
+
+.card {
+  background: var(--color-card);
+  border-radius: var(--radio-card);
+  box-shadow: var(--sombra-card);
+  padding: 24px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.badge-pendiente { background: #FFF3E0; color: #E65100; }
+.badge-aprobado, .badge-publicada { background: #E8F5E9; color: #2E7D32; }
+.badge-rechazado { background: #FFEBEE; color: #C62828; }
+.badge-borrador { background: #F3E5F5; color: #6A1B9A; }
+.badge-en-revision { background: #E3F2FD; color: #1565C0; }
+.badge-suspendido { background: #EFEBE9; color: #4E342E; }
+.badge-despublicada { background: #EFEBE9; color: #4E342E; }
+
+.form-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.form-grupo label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--color-texto-secundario);
+}
+.form-grupo .error-texto {
+  font-size: 0.8rem;
+  color: var(--color-error);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fadeIn 0.3s ease; }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid var(--color-borde);
+  border-top-color: var(--color-primario);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 40px auto;
+}
+
+.pagina-contenedor {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+.pagina-titulo {
+  margin-bottom: 24px;
+}
+
+.grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
