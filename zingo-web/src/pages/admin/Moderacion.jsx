@@ -141,12 +141,12 @@ export default function Moderacion() {
 
               <div className="reporte-acciones">
                 {r.estado !== 'resuelto' && (
-                  <button className="btn btn-exito" onClick={() => resolver(r._id)}>
+                  <button className="btn btn-primario" onClick={() => resolver(r._id)}>
                     <Icon name="check" size={14} color="#fff" /> Resolver
                   </button>
                 )}
-                <button className="btn btn-error" onClick={() => eliminar(r._id)}>
-                  <Icon name="trash" size={14} color="#fff" /> Eliminar
+                <button className="btn btn-secundario" onClick={() => eliminar(r._id)}>
+                  <Icon name="trash" size={14} color="var(--color-texto-secundario)" /> Eliminar
                 </button>
               </div>
             </div>

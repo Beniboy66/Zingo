@@ -14,7 +14,11 @@ export default function Navbar() {
   useEffect(() => {
     if (usuario) {
       api.get('/notificaciones')
-        .then(({ data }) => setNotificacionesNoLeidas(data.noLeidas || 0))
+        .then(({ data }) => {
+          // Handle both formats
+          const count = data.noLeidas ?? data.datos?.noLeidas ?? 0;
+          setNotificacionesNoLeidas(count);
+        })
         .catch(() => {});
     }
   }, [usuario, location.pathname]);
@@ -30,6 +34,7 @@ export default function Navbar() {
   const enlaces = esAdmin ? [
     { ruta: '/admin/dashboard', texto: 'Dashboard' },
     { ruta: '/admin/solicitudes', texto: 'Solicitudes' },
+    { ruta: '/admin/rutas-pendientes', texto: 'Rutas' },
     { ruta: '/admin/usuarios', texto: 'Usuarios' },
     { ruta: '/admin/concesionarios', texto: 'Concesionarios' },
     { ruta: '/admin/supervision', texto: 'Mapa' },

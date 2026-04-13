@@ -137,20 +137,20 @@ exports.rechazarRuta = async (req, res, next) => {
 // GET /api/admin/estadisticas
 exports.estadisticas = async (req, res, next) => {
   try {
-    const [totalAgencias, agenciasPendientes, rutasPublicadas, reportesPendientes, consultasTotales] = await Promise.all([
+    const [totalAgencias, agenciasPendientes, rutasPublicadas, rutasPorRevisar, reportesPendientes, totalUsuarios, consultasTotales] = await Promise.all([
       Usuario.countDocuments({ rol: 'agencia', estado: 'aprobado' }),
       Usuario.countDocuments({ rol: 'agencia', estado: 'pendiente' }),
       Ruta.countDocuments({ estado: 'publicada' }),
+      Ruta.countDocuments({ estado: 'en_revision' }),
       Reporte.countDocuments({ estado: 'pendiente' }),
+      Usuario.countDocuments({ rol: 'usuario' }),
       Ruta.aggregate([{ $group: { _id: null, total: { $sum: '$consultas' } } }])
     ]);
-
-    const totalUsuarios = await Usuario.countDocuments({ rol: 'usuario' });
 
     res.json({
       exito: true,
       datos: {
-        totalAgencias, agenciasPendientes, rutasPublicadas,
+        totalAgencias, agenciasPendientes, rutasPublicadas, rutasPorRevisar,
         reportesPendientes, totalUsuarios,
         consultasTotales: consultasTotales[0]?.total || 0
       }

@@ -1,8 +1,10 @@
+import { Component } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { View, Text } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import colores from './src/utils/colores';
 
@@ -33,11 +35,40 @@ const TAB_ICONS = {
   Perfil: { focused: 'person', unfocused: 'person-outline' },
 };
 
+// Error boundary to catch crashes
+class ErrorBoundary extends Component {
+  state = { hasError: false, error: null };
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+
+  resetApp = async () => {
+    await AsyncStorage.clear();
+    this.setState({ hasError: false, error: null });
+  };
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, backgroundColor: '#F5F5F7' }}>
+          <Text style={{ fontSize: 20, fontWeight: '700', marginBottom: 12 }}>Algo salio mal</Text>
+          <Text style={{ fontSize: 14, color: '#86868B', textAlign: 'center', marginBottom: 24 }}>
+            {this.state.error?.message || 'Error desconocido'}
+          </Text>
+          <TouchableOpacity onPress={this.resetApp}
+            style={{ backgroundColor: '#007AFF', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 10 }}>
+            <Text style={{ color: '#fff', fontWeight: '600' }}>Reiniciar App</Text>
+          </TouchableOpacity>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 function TabsNavegacion() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
+        tabBarIcon: ({ focused, color }) => {
           const icons = TAB_ICONS[route.name];
           const iconName = focused ? icons.focused : icons.unfocused;
           return <Ionicons name={iconName} size={24} color={color} />;
@@ -107,8 +138,10 @@ function AppNavigator() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AppNavigator />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppNavigator />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

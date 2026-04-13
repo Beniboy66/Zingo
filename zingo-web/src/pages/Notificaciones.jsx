@@ -37,9 +37,11 @@ export default function Notificaciones() {
   const cargar = async () => {
     try {
       const { data } = await api.get('/notificaciones');
-      setNotificaciones(data.datos || []);
+      // Handle both formats: datos = [...] or datos = { notificaciones: [...], noLeidas }
+      const lista = Array.isArray(data.datos) ? data.datos : (data.datos?.notificaciones || []);
+      setNotificaciones(lista);
     } catch (err) {
-      console.error(err);
+      console.error('Error cargando notificaciones:', err);
     } finally {
       setCargando(false);
     }

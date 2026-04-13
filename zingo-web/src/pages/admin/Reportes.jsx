@@ -114,8 +114,8 @@ export default function Reportes() {
                     <div className="tabla-acciones">
                       {r.estado === 'pendiente' && (
                         <>
-                          <button className="btn btn-exito" onClick={() => actualizarEstado(r._id, 'validado')}>Validar</button>
-                          <button className="btn btn-error" onClick={() => actualizarEstado(r._id, 'rechazado')}>Rechazar</button>
+                          <button className="btn btn-primario" onClick={() => actualizarEstado(r._id, 'validado')}>Validar</button>
+                          <button className="btn btn-secundario" onClick={() => actualizarEstado(r._id, 'rechazado')}>Rechazar</button>
                         </>
                       )}
                       {r.estado === 'validado' && (

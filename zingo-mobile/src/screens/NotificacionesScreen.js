@@ -27,7 +27,8 @@ export default function NotificacionesScreen() {
   const cargar = async () => {
     try {
       const { data } = await api.get('/notificaciones');
-      setNotificaciones(data.datos || []);
+      const lista = Array.isArray(data.datos) ? data.datos : (data.datos?.notificaciones || []);
+      setNotificaciones(lista);
     } catch (err) {
       console.error(err);
     } finally {

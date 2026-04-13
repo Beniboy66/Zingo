@@ -149,11 +149,11 @@ export default function SolicitudDetalle() {
       </div>
 
       <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
-        <button className="btn btn-exito" onClick={() => setModalAprobar(true)}>
+        <button className="btn btn-primario" onClick={() => setModalAprobar(true)}>
           <Icon name="check" size={16} color="#fff" /> Aprobar Solicitud
         </button>
-        <button className="btn btn-error" onClick={() => setModalRechazar(true)}>
-          <Icon name="x" size={16} color="#fff" /> Rechazar Solicitud
+        <button className="btn btn-secundario" onClick={() => setModalRechazar(true)}>
+          <Icon name="x" size={16} color="var(--color-texto)" /> Rechazar Solicitud
         </button>
       </div>
 
@@ -186,7 +186,7 @@ export default function SolicitudDetalle() {
             </div>
             <div className="modal-acciones">
               <button className="btn btn-secundario" onClick={() => setModalAprobar(false)}>Cancelar</button>
-              <button className="btn btn-exito" disabled={procesando || !nombreConcesionario || !folioTitulo} onClick={handleAprobar}>
+              <button className="btn btn-primario" disabled={procesando || !nombreConcesionario || !folioTitulo} onClick={handleAprobar}>
                 {procesando ? 'Aprobando...' : 'Confirmar Aprobacion'}
               </button>
             </div>
@@ -204,7 +204,7 @@ export default function SolicitudDetalle() {
             </div>
             <div className="modal-acciones">
               <button className="btn btn-secundario" onClick={() => setModalRechazar(false)}>Cancelar</button>
-              <button className="btn btn-error" disabled={procesando || !motivoRechazo} onClick={handleRechazar}>
+              <button className="btn btn-secundario" disabled={procesando || !motivoRechazo} onClick={handleRechazar}>
                 {procesando ? 'Rechazando...' : 'Confirmar Rechazo'}
               </button>
             </div>

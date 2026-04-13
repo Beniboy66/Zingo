@@ -129,7 +129,7 @@ export default function Concesionarios() {
                         <Icon name="x-circle" size={15} color="var(--color-texto)" /> Desactivar
                       </button>
                     ) : c.estado === 'suspendido' && (
-                      <button className="btn btn-exito" onClick={() => activar(c._id)}>
+                      <button className="btn btn-primario" onClick={() => activar(c._id)}>
                         <Icon name="check-circle" size={15} color="#fff" /> Activar
                       </button>
                     )}

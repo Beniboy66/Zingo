@@ -116,7 +116,7 @@ export default function Usuarios() {
                       {u.rol !== 'super_admin' && (
                         <>
                           {u.estado === 'suspendido' ? (
-                            <button className="btn btn-exito" onClick={() => reactivar(u._id)}>
+                            <button className="btn btn-primario" onClick={() => reactivar(u._id)}>
                               <Icon name="check" size={14} color="#fff" /> Reactivar
                             </button>
                           ) : u.estado !== 'pendiente' && (
@@ -124,8 +124,8 @@ export default function Usuarios() {
                               Suspender
                             </button>
                           )}
-                          <button className="btn btn-error" onClick={() => eliminar(u._id)}>
-                            <Icon name="trash" size={14} color="#fff" />
+                          <button className="btn btn-secundario" onClick={() => eliminar(u._id)}>
+                            <Icon name="trash" size={14} color="var(--color-texto-secundario)" />
                           </button>
                         </>
                       )}
