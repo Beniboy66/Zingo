@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { GoogleMap, useJsApiLoader, Polyline, Marker } from '@react-google-maps/api';
+import { GoogleMap, useJsApiLoader, Marker, Autocomplete } from '@react-google-maps/api';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import Icon from '../../components/Icon';
@@ -8,7 +8,13 @@ import './Agencia.css';
 
 const LIBRARIES = ['places'];
 const MAPA_CENTRO = { lat: 20.0833, lng: -98.3625 };
-const COLORES = ['#007AFF', '#34C759', '#FF9500', '#AF52DE', '#FF3B30', '#5AC8FA', '#FF2D55'];
+const COLORES = [
+  '#007AFF', '#5AC8FA', '#00C7BE', '#30B0C7',
+  '#34C759', '#32D74B', '#A2845E', '#8B4513',
+  '#FFCC00', '#FF9500', '#FF6B35', '#FF3B30',
+  '#FF2D55', '#FF375F', '#AF52DE', '#BF5AF2',
+  '#5856D6', '#5E5CE6', '#1D1D1F', '#636366',
+];
 const MODOS = { NINGUNO: 'ninguno', TRAZO: 'trazo', PARADA: 'parada' };
 
 // Project point onto segment AB, return closest point on segment
@@ -38,7 +44,28 @@ export default function EditorRuta() {
   const { usuario } = useAuth();
   const mapaRef = useRef(null);
   const dsRef = useRef(null); // DirectionsService
+  const polylineRef = useRef(null); // google.maps.Polyline nativa
   const trazoRef = useRef([]);
+  const autocompleteRef = useRef(null);
+  const [busquedaLugar, setBusquedaLugar] = useState('');
+  const [busquedaActiva, setBusquedaActiva] = useState(false);
+  const [aviso, setAviso] = useState(null); // { mensaje, tipo: 'info'|'confirm'|'error', onConfirmar }
+
+  const mostrarAlerta = useCallback((mensaje, tipo = 'info') => {
+    setAviso({ mensaje, tipo });
+  }, []);
+
+  const mostrarConfirmacion = useCallback((mensaje, onConfirmar) => {
+    setAviso({ mensaje, tipo: 'confirm', onConfirmar });
+  }, []);
+
+  const cerrarAviso = useCallback(() => setAviso(null), []);
+
+  const confirmarAviso = useCallback(() => {
+    const cb = aviso?.onConfirmar;
+    setAviso(null);
+    if (cb) cb();
+  }, [aviso]);
   // Segments cache: segmentos[i] = path between waypoints[i] and waypoints[i+1]
   const segmentosRef = useRef([]);
 
@@ -60,6 +87,7 @@ export default function EditorRuta() {
   const [modo, setModo] = useState(MODOS.NINGUNO);
   const [waypoints, setWaypoints] = useState([]);
   const [trazo, setTrazo] = useState([]);
+  const [trazoVersion, setTrazoVersion] = useState(0);
   const [calculando, setCalculando] = useState(false);
   const [paradas, setParadas] = useState([]);
   const [guardando, setGuardando] = useState(false);
@@ -76,6 +104,37 @@ export default function EditorRuta() {
   const [rampa, setRampa] = useState(false);
 
   useEffect(() => { trazoRef.current = trazo; }, [trazo]);
+
+  // Manejo manual de la polyline nativa de Google Maps
+  useEffect(() => {
+    if (!mapaRef.current || !window.google) return;
+    if (trazo.length < 2) {
+      if (polylineRef.current) {
+        polylineRef.current.setMap(null);
+        polylineRef.current = null;
+      }
+      return;
+    }
+    if (!polylineRef.current) {
+      polylineRef.current = new window.google.maps.Polyline({
+        map: mapaRef.current,
+        path: trazo,
+        strokeColor: color,
+        strokeWeight: 5,
+        strokeOpacity: 0.85,
+      });
+    } else {
+      polylineRef.current.setPath(trazo);
+      polylineRef.current.setOptions({ strokeColor: color });
+    }
+  }, [trazo, color]);
+
+  useEffect(() => () => {
+    if (polylineRef.current) {
+      polylineRef.current.setMap(null);
+      polylineRef.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     if (id) {
@@ -107,8 +166,7 @@ export default function EditorRuta() {
         })));
       }).catch((err) => {
         console.error('Error cargando ruta:', err);
-        alert('Error al cargar la ruta');
-        navigate('/agencia/dashboard');
+        setAviso({ mensaje: 'Error al cargar la ruta', tipo: 'error', onConfirmar: () => navigate('/agencia/dashboard') });
       }).finally(() => setCargando(false));
     }
   }, [id, navigate]);
@@ -131,7 +189,7 @@ export default function EditorRuta() {
           }
           resolve(puntos);
         } else {
-          // Fallback: straight line
+          console.warn('[DirectionsService] Falló con status:', status, '— usando línea recta como fallback');
           resolve([from, to]);
         }
       });
@@ -149,6 +207,7 @@ export default function EditorRuta() {
       }
     }
     setTrazo(todos);
+    setTrazoVersion(v => v + 1);
   }, []);
 
   // When a new waypoint is added, only calculate the new last segment
@@ -179,23 +238,45 @@ export default function EditorRuta() {
   }, [waypoints, reconstruirTrazo]);
 
   const limpiarTrazo = useCallback(() => {
-    if (!confirm('Limpiar todo el trazo? Las paradas se mantendran.')) return;
-    setWaypoints([]);
-    segmentosRef.current = [];
-    setTrazo([]);
-  }, []);
+    mostrarConfirmacion('Limpiar todo el trazo? Las paradas se mantendran.', () => {
+      setWaypoints([]);
+      segmentosRef.current = [];
+      setTrazo([]);
+      setTrazoVersion(v => v + 1);
+    });
+  }, [mostrarConfirmacion]);
 
   const limpiarTodo = useCallback(() => {
-    if (!confirm('Limpiar trazo Y paradas?')) return;
-    setWaypoints([]);
-    segmentosRef.current = [];
-    setTrazo([]);
-    setParadas([]);
-  }, []);
+    mostrarConfirmacion('Limpiar trazo Y paradas?', () => {
+      setWaypoints([]);
+      segmentosRef.current = [];
+      setTrazo([]);
+      setTrazoVersion(v => v + 1);
+      setParadas([]);
+    });
+  }, [mostrarConfirmacion]);
 
   const onMapLoad = useCallback((map) => {
     mapaRef.current = map;
     dsRef.current = new window.google.maps.DirectionsService();
+  }, []);
+
+  const onAutocompleteLoad = useCallback((ac) => {
+    autocompleteRef.current = ac;
+  }, []);
+
+  const onLugarSeleccionado = useCallback(() => {
+    const ac = autocompleteRef.current;
+    if (!ac || !mapaRef.current) return;
+    const place = ac.getPlace();
+    if (!place || !place.geometry) return;
+    if (place.geometry.viewport) {
+      mapaRef.current.fitBounds(place.geometry.viewport);
+    } else if (place.geometry.location) {
+      mapaRef.current.panTo(place.geometry.location);
+      mapaRef.current.setZoom(16);
+    }
+    setBusquedaLugar(place.name || place.formatted_address || '');
   }, []);
 
   const onMapClick = useCallback((e) => {
@@ -204,13 +285,13 @@ export default function EditorRuta() {
       agregarWaypoint(punto);
     } else if (modo === MODOS.PARADA) {
       const t = trazoRef.current;
-      if (t.length < 2) { alert('Primero traza la ruta'); return; }
+      if (t.length < 2) { mostrarAlerta('Primero traza la ruta'); return; }
       setNuevaParada(snapAPolilinea(punto, t));
       setNombreParada(''); setReferenciaParada('');
       setEsTerminal(false); setTechada(false);
       setIluminacion(false); setAsientos(false); setRampa(false);
     }
-  }, [modo, agregarWaypoint]);
+  }, [modo, agregarWaypoint, mostrarAlerta]);
 
   const agregarParada = () => {
     if (!nuevaParada || !nombreParada) return;
@@ -230,8 +311,8 @@ export default function EditorRuta() {
   const cambiarModo = (m) => setModo(prev => prev === m ? MODOS.NINGUNO : m);
 
   const guardar = async (enviarRevision = false) => {
-    if (!nombre) return alert('El nombre de la ruta es obligatorio');
-    if (trazo.length < 2) return alert('Traza la ruta sobre el mapa');
+    if (!nombre) return mostrarAlerta('El nombre de la ruta es obligatorio');
+    if (trazo.length < 2) return mostrarAlerta('Traza la ruta sobre el mapa');
 
     setGuardando(true);
     try {
@@ -265,7 +346,7 @@ export default function EditorRuta() {
       }
       navigate('/agencia/dashboard');
     } catch (err) {
-      alert(err.response?.data?.mensaje || 'Error al guardar');
+      mostrarAlerta(err.response?.data?.mensaje || 'Error al guardar', 'error');
     } finally {
       setGuardando(false);
     }
@@ -287,9 +368,6 @@ export default function EditorRuta() {
             draggableCursor: modo === MODOS.NINGUNO ? undefined : 'crosshair',
           }}
         >
-          {trazo.length >= 2 && (
-            <Polyline path={trazo} options={{ strokeColor: color, strokeWeight: 5, strokeOpacity: 0.85 }} />
-          )}
           {waypoints.map((p, i) => (
             <Marker key={`w-${i}`} position={p} icon={{
               path: window.google.maps.SymbolPath.CIRCLE, scale: 7,
@@ -307,6 +385,59 @@ export default function EditorRuta() {
             />
           ))}
         </GoogleMap>
+
+        <div style={{
+          position: 'absolute', top: 68, left: 12,
+          zIndex: 5, width: 'min(340px, calc(100% - 24px))'
+        }}>
+          <Autocomplete
+            onLoad={onAutocompleteLoad}
+            onPlaceChanged={onLugarSeleccionado}
+            options={{ fields: ['geometry', 'name', 'formatted_address'] }}
+          >
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: busquedaActiva ? 'rgba(255,255,255,0.98)' : 'rgba(255,255,255,0.55)',
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              borderRadius: 12, padding: '10px 14px',
+              boxShadow: busquedaActiva
+                ? '0 6px 20px rgba(0,0,0,0.18)'
+                : '0 2px 8px rgba(0,0,0,0.08)',
+              border: busquedaActiva
+                ? '1px solid rgba(0,0,0,0.12)'
+                : '1px solid rgba(255,255,255,0.4)',
+              transition: 'background 0.2s, box-shadow 0.2s, border 0.2s'
+            }}>
+              <Icon name="search" size={18} color="var(--color-texto-secundario)" />
+              <input
+                type="text"
+                placeholder="Buscar lugar o direccion..."
+                value={busquedaLugar}
+                onChange={e => setBusquedaLugar(e.target.value)}
+                onFocus={() => setBusquedaActiva(true)}
+                onBlur={() => setBusquedaActiva(false)}
+                style={{
+                  flex: 1, border: 'none', outline: 'none', background: 'transparent',
+                  fontSize: '0.9rem', color: 'var(--color-texto)'
+                }}
+              />
+              {busquedaLugar && (
+                <button
+                  onMouseDown={e => e.preventDefault()}
+                  onClick={() => setBusquedaLugar('')}
+                  style={{
+                    background: 'transparent', border: 'none', cursor: 'pointer',
+                    padding: 2, display: 'flex', alignItems: 'center'
+                  }}
+                  title="Limpiar"
+                >
+                  <Icon name="x" size={14} color="var(--color-texto-secundario)" />
+                </button>
+              )}
+            </div>
+          </Autocomplete>
+        </div>
 
         <div className="editor-toolbar">
           <button className={`btn-toolbar ${modo === MODOS.TRAZO ? 'activo-trazo' : ''}`}
@@ -388,14 +519,38 @@ export default function EditorRuta() {
         </div>
         <div className="form-grupo">
           <label>Color de la ruta</label>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
             {COLORES.map(c => (
-              <button key={c} onClick={() => setColor(c)} style={{
+              <button key={c} onClick={() => setColor(c)} title={c} style={{
                 width: 28, height: 28, borderRadius: '50%', background: c,
-                border: color === c ? '3px solid var(--color-texto)' : '2px solid transparent',
-                cursor: 'pointer', transition: 'border 0.2s'
+                border: color.toLowerCase() === c.toLowerCase() ? '3px solid var(--color-texto)' : '2px solid rgba(0,0,0,0.08)',
+                cursor: 'pointer', transition: 'border 0.2s, transform 0.15s',
+                transform: color.toLowerCase() === c.toLowerCase() ? 'scale(1.1)' : 'scale(1)',
+                padding: 0,
               }} />
             ))}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <label htmlFor="color-custom" style={{
+              display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+              fontSize: '0.8rem', color: 'var(--color-texto-secundario)', margin: 0
+            }}>
+              <input
+                id="color-custom"
+                type="color"
+                value={color}
+                onChange={e => setColor(e.target.value)}
+                style={{
+                  width: 32, height: 32, border: '2px solid var(--color-borde, #e0e0e0)',
+                  borderRadius: 8, cursor: 'pointer', padding: 2, background: 'transparent'
+                }}
+              />
+              Personalizado
+            </label>
+            <span style={{
+              fontFamily: 'monospace', fontSize: '0.78rem',
+              color: 'var(--color-texto-secundario)', textTransform: 'uppercase'
+            }}>{color}</span>
           </div>
         </div>
 
@@ -491,6 +646,54 @@ export default function EditorRuta() {
             <div className="modal-acciones">
               <button className="btn btn-secundario" onClick={() => setNuevaParada(null)}>Cancelar</button>
               <button className="btn btn-primario" disabled={!nombreParada} onClick={agregarParada}>Agregar Parada</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {aviso && (
+        <div className="modal-overlay" onClick={aviso.tipo === 'confirm' ? undefined : cerrarAviso}>
+          <div
+            className="modal-contenido fade-in"
+            onClick={e => e.stopPropagation()}
+            style={{ maxWidth: 360, textAlign: 'center', padding: '28px 24px' }}
+          >
+            <div style={{
+              width: 56, height: 56, borderRadius: '50%',
+              background: aviso.tipo === 'error'
+                ? 'rgba(255,59,48,0.12)'
+                : aviso.tipo === 'confirm'
+                  ? 'rgba(255,149,0,0.12)'
+                  : 'rgba(0,122,255,0.12)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 16px'
+            }}>
+              <Icon
+                name={aviso.tipo === 'error' ? 'x-circle' : aviso.tipo === 'confirm' ? 'alert-triangle' : 'bell'}
+                size={28}
+                color={aviso.tipo === 'error' ? '#FF3B30' : aviso.tipo === 'confirm' ? '#FF9500' : '#007AFF'}
+              />
+            </div>
+            <h2 style={{ fontSize: '1.1rem', marginBottom: 8 }}>
+              {aviso.tipo === 'error' ? 'Error' : aviso.tipo === 'confirm' ? 'Confirmar accion' : 'Aviso'}
+            </h2>
+            <p style={{
+              fontSize: '0.9rem', color: 'var(--color-texto-secundario)',
+              marginBottom: 22, lineHeight: 1.5
+            }}>
+              {aviso.mensaje}
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+              {aviso.tipo === 'confirm' ? (
+                <>
+                  <button className="btn btn-secundario" onClick={cerrarAviso}>Cancelar</button>
+                  <button className="btn btn-primario" onClick={confirmarAviso}>Confirmar</button>
+                </>
+              ) : (
+                <button className="btn btn-primario" onClick={confirmarAviso} style={{ minWidth: 120 }}>
+                  Entendido
+                </button>
+              )}
             </div>
           </div>
         </div>
