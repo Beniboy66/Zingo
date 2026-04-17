@@ -193,6 +193,7 @@
 .btn-toolbar:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
 .btn-toolbar.activo { background: var(--color-exito); color: #fff; border-color: var(--color-exito); }
 .btn-toolbar.activo-trazo { background: var(--color-primario); color: #fff; border-color: var(--color-primario); }
+.btn-toolbar.activo-cortar { background: #FF9500; color: #fff; border-color: #FF9500; }
 .toolbar-separador { width: 1px; height: 24px; background: var(--color-borde); margin: 0 2px; }
 .toolbar-status { font-size: 0.8rem; color: var(--color-primario); font-weight: 500; background: #fff; padding: 6px 12px; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
 
@@ -215,6 +216,7 @@
   white-space: nowrap;
 }
 .editor-hint.hint-trazo { background: var(--color-primario); color: #fff; }
+.editor-hint.hint-cortar { background: #FF9500; color: #fff; }
 .editor-hint.hint-parada { background: var(--color-exito); color: #fff; }
 
 /* Parada tags */

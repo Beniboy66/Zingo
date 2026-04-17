@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { GoogleMap, useJsApiLoader, Polyline, Marker } from '@react-google-maps/api';
 import { useAuth } from '../../context/AuthContext';
+import { useModal } from '../../components/Modal';
 import api from '../../services/api';
 import Icon from '../../components/Icon';
 import './Agencia.css';
@@ -9,7 +10,7 @@ import './Agencia.css';
 const LIBRARIES = ['places'];
 const MAPA_CENTRO = { lat: 20.0833, lng: -98.3625 };
 const COLORES = ['#007AFF', '#34C759', '#FF9500', '#AF52DE', '#FF3B30', '#5AC8FA', '#FF2D55'];
-const MODOS = { NINGUNO: 'ninguno', TRAZO: 'trazo', PARADA: 'parada' };
+const MODOS = { NINGUNO: 'ninguno', TRAZO: 'trazo', PARADA: 'parada', CORTAR: 'cortar' };
 
 // Project point onto segment AB, return closest point on segment
 function puntoEnSegmento(punto, a, b) {
@@ -37,8 +38,11 @@ export default function EditorRuta() {
   const navigate = useNavigate();
   const { usuario } = useAuth();
   const mapaRef = useRef(null);
+  const { mostrarAlerta, mostrarConfirmar, mostrarError } = useModal();
   const dsRef = useRef(null); // DirectionsService
   const trazoRef = useRef([]);
+  const waypointsRef = useRef([]);
+  const modoRef = useRef(MODOS.NINGUNO);
   // Segments cache: segmentos[i] = path between waypoints[i] and waypoints[i+1]
   const segmentosRef = useRef([]);
 
@@ -66,6 +70,7 @@ export default function EditorRuta() {
   const [cargando, setCargando] = useState(!!id);
   const [centroInicial] = useState(MAPA_CENTRO);
 
+  const [estadoOriginal, setEstadoOriginal] = useState(null);
   const [nuevaParada, setNuevaParada] = useState(null);
   const [nombreParada, setNombreParada] = useState('');
   const [referenciaParada, setReferenciaParada] = useState('');
@@ -76,6 +81,8 @@ export default function EditorRuta() {
   const [rampa, setRampa] = useState(false);
 
   useEffect(() => { trazoRef.current = trazo; }, [trazo]);
+  useEffect(() => { waypointsRef.current = waypoints; }, [waypoints]);
+  useEffect(() => { modoRef.current = modo; }, [modo]);
 
   useEffect(() => {
     if (id) {
@@ -86,6 +93,7 @@ export default function EditorRuta() {
         // Handle both formats: datos = ruta object, or datos = { ruta, paradas }
         const raw = rutaRes.data.datos;
         const ruta = raw.ruta || raw;
+        setEstadoOriginal(ruta.estado);
         setNombre(ruta.nombre); setDescripcion(ruta.descripcion || '');
         setTarifa(ruta.tarifa); setHorarioInicio(ruta.horarioInicio);
         setHorarioFin(ruta.horarioFin); setFrecuenciaMin(ruta.frecuenciaMin);
@@ -93,9 +101,12 @@ export default function EditorRuta() {
         setVelocidad(ruta.velocidadPromedioKmh || 20);
         if (ruta.trazo?.coordinates?.length > 0) {
           const coords = ruta.trazo.coordinates.map(([lng, lat]) => ({ lat, lng }));
-          setTrazo(coords);
-          setWaypoints([coords[0], coords[coords.length - 1]]);
+          const wps = [coords[0], coords[coords.length - 1]];
+          trazoRef.current = coords;
+          waypointsRef.current = wps;
           segmentosRef.current = [coords];
+          setTrazo(coords);
+          setWaypoints(wps);
         }
         const paradasData = paradasRes.data.datos || raw.paradas || [];
         setParadas(paradasData.map(p => ({
@@ -107,7 +118,7 @@ export default function EditorRuta() {
         })));
       }).catch((err) => {
         console.error('Error cargando ruta:', err);
-        alert('Error al cargar la ruta');
+        mostrarError('No se pudo cargar la ruta');
         navigate('/agencia/dashboard');
       }).finally(() => setCargando(false));
     }
@@ -148,12 +159,14 @@ export default function EditorRuta() {
         todos.push(seg[i]);
       }
     }
+    trazoRef.current = todos;
     setTrazo(todos);
   }, []);
 
   // When a new waypoint is added, only calculate the new last segment
   const agregarWaypoint = useCallback(async (punto) => {
-    const nuevos = [...waypoints, punto];
+    const nuevos = [...waypointsRef.current, punto];
+    waypointsRef.current = nuevos;
     setWaypoints(nuevos);
 
     if (nuevos.length >= 2) {
@@ -165,52 +178,102 @@ export default function EditorRuta() {
       reconstruirTrazo();
       setCalculando(false);
     }
-  }, [waypoints, calcularSegmento, reconstruirTrazo]);
+  }, [calcularSegmento, reconstruirTrazo]);
 
   const deshacerWaypoint = useCallback(() => {
-    if (waypoints.length === 0) return;
-    const nuevos = waypoints.slice(0, -1);
+    const current = waypointsRef.current;
+    if (current.length === 0) return;
+    const nuevos = current.slice(0, -1);
+    waypointsRef.current = nuevos;
     setWaypoints(nuevos);
-    // Remove last segment
     if (segmentosRef.current.length > 0) {
       segmentosRef.current.pop();
     }
     reconstruirTrazo();
-  }, [waypoints, reconstruirTrazo]);
+  }, [reconstruirTrazo]);
 
-  const limpiarTrazo = useCallback(() => {
-    if (!confirm('Limpiar todo el trazo? Las paradas se mantendran.')) return;
-    setWaypoints([]);
+  const limpiarTrazo = useCallback(async () => {
+    if (!await mostrarConfirmar('Las paradas se mantendran.', { titulo: 'Limpiar trazo', textoAceptar: 'Limpiar', destructivo: true })) return;
+    waypointsRef.current = [];
+    trazoRef.current = [];
     segmentosRef.current = [];
+    setWaypoints([]);
     setTrazo([]);
-  }, []);
+    setModo(MODOS.NINGUNO);
+  }, [mostrarConfirmar]);
 
-  const limpiarTodo = useCallback(() => {
-    if (!confirm('Limpiar trazo Y paradas?')) return;
-    setWaypoints([]);
+  const limpiarTodo = useCallback(async () => {
+    if (!await mostrarConfirmar('Se eliminara el trazo y todas las paradas.', { titulo: 'Limpiar todo', textoAceptar: 'Limpiar todo', destructivo: true })) return;
+    waypointsRef.current = [];
+    trazoRef.current = [];
     segmentosRef.current = [];
+    setWaypoints([]);
     setTrazo([]);
     setParadas([]);
-  }, []);
+    setModo(MODOS.NINGUNO);
+  }, [mostrarConfirmar]);
+
+  // Cortar trazo: click en el mapa para cortar desde ese punto hacia adelante
+  const cortarTrazoEn = useCallback((punto) => {
+    const t = trazoRef.current;
+    if (t.length < 2) return;
+
+    // Encontrar el segmento mas cercano al click (proyeccion sobre la polilinea)
+    let minDist = Infinity, mejorIdx = 0;
+    for (let i = 0; i < t.length - 1; i++) {
+      const { dist } = puntoEnSegmento(punto, t[i], t[i + 1]);
+      if (dist < minDist) { minDist = dist; mejorIdx = i + 1; }
+    }
+
+    // No cortar si quedarian menos de 2 puntos
+    if (mejorIdx < 2) {
+      mostrarAlerta('No puedes cortar tan cerca del inicio. Usa "Limpiar trazo" para borrar todo.');
+      return;
+    }
+
+    // Cortar: mantener trazo hasta mejorIdx
+    const trazoRecortado = t.slice(0, mejorIdx + 1);
+    const ultimoPunto = trazoRecortado[trazoRecortado.length - 1];
+
+    // Sincronizar refs inmediatamente
+    trazoRef.current = trazoRecortado;
+    waypointsRef.current = [trazoRecortado[0], ultimoPunto];
+    segmentosRef.current = [trazoRecortado];
+
+    setTrazo(trazoRecortado);
+    setWaypoints([trazoRecortado[0], ultimoPunto]);
+
+    // Cambiar automaticamente a modo trazo para que continue dibujando
+    setModo(MODOS.TRAZO);
+  }, [mostrarAlerta]);
 
   const onMapLoad = useCallback((map) => {
     mapaRef.current = map;
     dsRef.current = new window.google.maps.DirectionsService();
   }, []);
 
-  const onMapClick = useCallback((e) => {
+  // Ref para el handler del mapa — evita closures stale con Google Maps
+  const onMapClickRef = useRef(null);
+  onMapClickRef.current = (e) => {
     const punto = { lat: e.latLng.lat(), lng: e.latLng.lng() };
-    if (modo === MODOS.TRAZO) {
+    const m = modoRef.current;
+    if (m === MODOS.TRAZO) {
       agregarWaypoint(punto);
-    } else if (modo === MODOS.PARADA) {
+    } else if (m === MODOS.PARADA) {
       const t = trazoRef.current;
-      if (t.length < 2) { alert('Primero traza la ruta'); return; }
+      if (t.length < 2) { mostrarAlerta('Primero traza la ruta antes de agregar paradas.'); return; }
       setNuevaParada(snapAPolilinea(punto, t));
       setNombreParada(''); setReferenciaParada('');
       setEsTerminal(false); setTechada(false);
       setIluminacion(false); setAsientos(false); setRampa(false);
+    } else if (m === MODOS.CORTAR) {
+      cortarTrazoEn(punto);
     }
-  }, [modo, agregarWaypoint]);
+  };
+  // Callback estable que Google Maps registra una sola vez
+  const onMapClick = useCallback((e) => {
+    onMapClickRef.current(e);
+  }, []);
 
   const agregarParada = () => {
     if (!nuevaParada || !nombreParada) return;
@@ -230,17 +293,24 @@ export default function EditorRuta() {
   const cambiarModo = (m) => setModo(prev => prev === m ? MODOS.NINGUNO : m);
 
   const guardar = async (enviarRevision = false) => {
-    if (!nombre) return alert('El nombre de la ruta es obligatorio');
-    if (trazo.length < 2) return alert('Traza la ruta sobre el mapa');
+    if (!nombre) return mostrarAlerta('El nombre de la ruta es obligatorio.');
+    if (trazo.length < 2) return mostrarAlerta('Traza la ruta sobre el mapa antes de guardar.');
 
     setGuardando(true);
     try {
+      // Si la ruta ya estaba publicada y se envia a revision, marcar como edicion_pendiente
+      let nuevoEstado = 'borrador';
+      if (enviarRevision) {
+        nuevoEstado = (estadoOriginal === 'publicada' || estadoOriginal === 'edicion_pendiente')
+          ? 'edicion_pendiente' : 'en_revision';
+      }
+
       const datos = {
         nombre, descripcion, tarifa: Number(tarifa), horarioInicio, horarioFin,
         frecuenciaMin: Number(frecuenciaMin), diasOperacion, color,
         velocidadPromedioKmh: Number(velocidad),
         trazo: { type: 'LineString', coordinates: trazo.map(p => [p.lng, p.lat]) },
-        estado: enviarRevision ? 'en_revision' : 'borrador'
+        estado: nuevoEstado
       };
 
       let rutaId = id;
@@ -265,7 +335,7 @@ export default function EditorRuta() {
       }
       navigate('/agencia/dashboard');
     } catch (err) {
-      alert(err.response?.data?.mensaje || 'Error al guardar');
+      mostrarError(err.response?.data?.mensaje || 'Error al guardar la ruta.');
     } finally {
       setGuardando(false);
     }
@@ -284,7 +354,7 @@ export default function EditorRuta() {
           onLoad={onMapLoad}
           options={{
             streetViewControl: false, mapTypeControl: false, fullscreenControl: false,
-            draggableCursor: modo === MODOS.NINGUNO ? undefined : 'crosshair',
+            draggableCursor: modo === MODOS.NINGUNO ? undefined : (modo === MODOS.CORTAR ? 'pointer' : 'crosshair'),
           }}
         >
           {trazo.length >= 2 && (
@@ -319,6 +389,11 @@ export default function EditorRuta() {
             <Icon name="location" size={16} color={modo === MODOS.PARADA ? '#fff' : 'var(--color-texto)'} />
             {modo === MODOS.PARADA ? 'Colocando...' : 'Agregar Paradas'}
           </button>
+          <button className={`btn-toolbar ${modo === MODOS.CORTAR ? 'activo-cortar' : ''}`}
+            onClick={() => cambiarModo(MODOS.CORTAR)} disabled={trazo.length < 4}>
+            <Icon name="scissors" size={16} color={modo === MODOS.CORTAR ? '#fff' : 'var(--color-texto)'} />
+            {modo === MODOS.CORTAR ? 'Cortando...' : 'Recortar trazo'}
+          </button>
           <div className="toolbar-separador" />
           <button className="btn-toolbar" onClick={deshacerWaypoint} disabled={waypoints.length === 0 || calculando}>
             <Icon name="arrow-up" size={14} color="var(--color-texto)" style={{ transform: 'rotate(-90deg)' }} /> Deshacer
@@ -339,10 +414,22 @@ export default function EditorRuta() {
             Activa "Trazar Ruta" para empezar a dibujar.
           </div>
         )}
+        {modo === MODOS.NINGUNO && waypoints.length > 0 && id && (
+          <div className="editor-hint">
+            <Icon name="scissors" size={16} color="var(--color-primario)" />
+            Usa "Recortar trazo" para editar una seccion, o "Trazar Ruta" para extender.
+          </div>
+        )}
         {modo === MODOS.TRAZO && (
           <div className="editor-hint hint-trazo">
             <Icon name="edit" size={16} color="#fff" />
             Click en el mapa para agregar puntos. La ruta sigue las calles.
+          </div>
+        )}
+        {modo === MODOS.CORTAR && (
+          <div className="editor-hint hint-cortar">
+            <Icon name="scissors" size={16} color="#fff" />
+            Click en la ruta para cortar desde ese punto. Luego podras re-trazar.
           </div>
         )}
         {modo === MODOS.PARADA && (
@@ -433,11 +520,15 @@ export default function EditorRuta() {
 
         <div className="editor-acciones">
           <button className="btn btn-secundario" onClick={() => navigate('/agencia/dashboard')}>Cancelar</button>
-          <button className="btn btn-primario" disabled={guardando} onClick={() => guardar(false)}>
-            {guardando ? 'Guardando...' : 'Guardar Borrador'}
-          </button>
+          {(estadoOriginal !== 'publicada' && estadoOriginal !== 'edicion_pendiente') && (
+            <button className="btn btn-primario" disabled={guardando} onClick={() => guardar(false)}>
+              {guardando ? 'Guardando...' : 'Guardar Borrador'}
+            </button>
+          )}
           <button className="btn btn-exito" disabled={guardando} onClick={() => guardar(true)}>
-            Enviar a Revision
+            {guardando ? 'Enviando...' :
+              (estadoOriginal === 'publicada' || estadoOriginal === 'edicion_pendiente')
+                ? 'Enviar Cambios a Revision' : 'Enviar a Revision'}
           </button>
         </div>
       </div>

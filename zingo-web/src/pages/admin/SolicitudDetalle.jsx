@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
+import { useModal } from '../../components/Modal';
 import Icon from '../../components/Icon';
 import './Admin.css';
 
@@ -9,6 +10,7 @@ const API_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://lo
 export default function SolicitudDetalle() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { mostrarError } = useModal();
   const [solicitud, setSolicitud] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [modalAprobar, setModalAprobar] = useState(false);
@@ -46,7 +48,7 @@ export default function SolicitudDetalle() {
       });
       navigate('/admin/solicitudes');
     } catch (err) {
-      alert(err.response?.data?.mensaje || 'Error al aprobar');
+      mostrarError(err.response?.data?.mensaje || 'Error al aprobar la solicitud.');
     } finally {
       setProcesando(false);
     }
@@ -59,7 +61,7 @@ export default function SolicitudDetalle() {
       await api.put(`/admin/solicitudes/${id}/rechazar`, { motivo: motivoRechazo });
       navigate('/admin/solicitudes');
     } catch (err) {
-      alert(err.response?.data?.mensaje || 'Error al rechazar');
+      mostrarError(err.response?.data?.mensaje || 'Error al rechazar la solicitud.');
     } finally {
       setProcesando(false);
     }

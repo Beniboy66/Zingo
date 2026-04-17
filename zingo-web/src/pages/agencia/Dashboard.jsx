@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { useModal } from '../../components/Modal';
 import Icon from '../../components/Icon';
 import './Agencia.css';
 
@@ -9,11 +10,13 @@ const ESTADOS = {
   borrador: 'Borrador',
   en_revision: 'En Revision',
   publicada: 'Publicada',
-  despublicada: 'Despublicada'
+  despublicada: 'Despublicada',
+  edicion_pendiente: 'Edicion Pendiente'
 };
 
 export default function AgenciaDashboard() {
   const { usuario } = useAuth();
+  const { mostrarConfirmar, mostrarError } = useModal();
   const [rutas, setRutas] = useState([]);
   const [cargando, setCargando] = useState(true);
 
@@ -27,12 +30,12 @@ export default function AgenciaDashboard() {
   }, [usuario]);
 
   const eliminarRuta = async (id) => {
-    if (!confirm('Seguro que quieres eliminar esta ruta?')) return;
+    if (!await mostrarConfirmar('Se eliminara la ruta y todas sus paradas. Esta accion no se puede deshacer.', { titulo: 'Eliminar ruta', textoAceptar: 'Eliminar', destructivo: true })) return;
     try {
       await api.delete(`/rutas/${id}`);
       setRutas((prev) => prev.filter((r) => r._id !== id));
     } catch (err) {
-      alert(err.response?.data?.mensaje || 'Error al eliminar');
+      mostrarError(err.response?.data?.mensaje || 'Error al eliminar la ruta.');
     }
   };
 
@@ -41,7 +44,7 @@ export default function AgenciaDashboard() {
       await api.put(`/rutas/${id}`, { estado: 'en_revision' });
       setRutas((prev) => prev.map((r) => r._id === id ? { ...r, estado: 'en_revision' } : r));
     } catch (err) {
-      alert(err.response?.data?.mensaje || 'Error');
+      mostrarError(err.response?.data?.mensaje || 'Error al enviar a revision.');
     }
   };
 

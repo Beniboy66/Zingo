@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
@@ -13,12 +13,24 @@ const TIPOS = {
   otro: 'Otro'
 };
 
+const formatearTiempo = (ms) => {
+  if (ms <= 0) return 'Expirado';
+  const min = Math.floor(ms / 60000);
+  const seg = Math.floor((ms % 60000) / 1000);
+  if (min > 0) return `${min}m ${seg}s`;
+  return `${seg}s`;
+};
+
 export default function ReportesScreen() {
   const [reportes, setReportes] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [ahora, setAhora] = useState(Date.now());
+  const intervalo = useRef(null);
 
   useEffect(() => {
     cargar();
+    intervalo.current = setInterval(() => setAhora(Date.now()), 1000);
+    return () => clearInterval(intervalo.current);
   }, []);
 
   const cargar = async () => {
@@ -51,10 +63,13 @@ export default function ReportesScreen() {
 
   if (cargando) return <View style={estilos.cargando}><ActivityIndicator size="large" color={colores.primario} /></View>;
 
+  // Filtrar expirados en el cliente tambien
+  const reportesActivos = reportes.filter(r => !r.expiraEn || new Date(r.expiraEn).getTime() > ahora);
+
   return (
     <FlatList
       style={estilos.contenedor}
-      data={reportes}
+      data={reportesActivos}
       keyExtractor={(item) => item._id}
       contentContainerStyle={{ padding: 16 }}
       ListEmptyComponent={
@@ -63,56 +78,71 @@ export default function ReportesScreen() {
           <Text style={estilos.vacioTexto}>No hay reportes activos</Text>
         </View>
       }
-      renderItem={({ item }) => (
-        <View style={estilos.reporteCard}>
-          <View style={estilos.reporteHeader}>
-            <View style={estilos.tipoBadge}>
-              <Text style={estilos.tipoBadgeTexto}>{TIPOS[item.tipo] || item.tipo}</Text>
+      renderItem={({ item }) => {
+        const tiempoRestante = item.expiraEn ? new Date(item.expiraEn).getTime() - ahora : 0;
+        const urgente = tiempoRestante > 0 && tiempoRestante < 5 * 60 * 1000; // menos de 5 min
+
+        return (
+          <View style={estilos.reporteCard}>
+            <View style={estilos.reporteHeader}>
+              <View style={estilos.tipoBadge}>
+                <Text style={estilos.tipoBadgeTexto}>{TIPOS[item.tipo] || item.tipo}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                {item.estado === 'validado' && (
+                  <View style={estilos.validadoBadge}>
+                    <Ionicons name="checkmark-circle" size={14} color="#2E7D32" />
+                    <Text style={estilos.validadoTexto}>Validado</Text>
+                  </View>
+                )}
+                {item.expiraEn && tiempoRestante > 0 && (
+                  <View style={[estilos.expiraBadge, urgente && estilos.expiraBadgeUrgente]}>
+                    <Ionicons name="time-outline" size={12} color={urgente ? colores.error : colores.advertencia} />
+                    <Text style={[estilos.expiraTexto, urgente && { color: colores.error }]}>
+                      {formatearTiempo(tiempoRestante)}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </View>
-            {item.estado === 'validado' && (
-              <View style={estilos.validadoBadge}>
-                <Ionicons name="checkmark-circle" size={14} color="#2E7D32" />
-                <Text style={estilos.validadoTexto}>Validado</Text>
+
+            <Text style={estilos.rutaNombre}>{item.rutaNombre}</Text>
+            <Text style={estilos.descripcion}>{item.descripcion}</Text>
+
+            {/* Barra de votos */}
+            <View style={estilos.votosContenedor}>
+              <View style={estilos.votosInfo}>
+                <View style={estilos.votoLabel}>
+                  <Ionicons name="arrow-up" size={14} color={colores.exito} />
+                  <Text style={estilos.votosFavor}>{item.votosFavor}</Text>
+                </View>
+                <View style={estilos.votoLabel}>
+                  <Ionicons name="arrow-down" size={14} color={colores.error} />
+                  <Text style={estilos.votosContra}>{item.votosContra}</Text>
+                </View>
+              </View>
+              <View style={estilos.votosBarra}>
+                <View style={[estilos.votosBarraFavor, { flex: item.votosFavor || 1 }]} />
+                <View style={[estilos.votosBarraContra, { flex: item.votosContra || 1 }]} />
+              </View>
+            </View>
+
+            {/* Botones de voto */}
+            {(item.estado === 'pendiente' || item.estado === 'validado') && (
+              <View style={estilos.votosBotones}>
+                <TouchableOpacity style={estilos.botonFavor} onPress={() => votar(item._id, 'favor')} activeOpacity={0.6}>
+                  <Ionicons name="thumbs-up-outline" size={16} color="#2E7D32" />
+                  <Text style={estilos.botonFavorTexto}>Es veridico</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={estilos.botonContra} onPress={() => votar(item._id, 'contra')} activeOpacity={0.6}>
+                  <Ionicons name="thumbs-down-outline" size={16} color="#C62828" />
+                  <Text style={estilos.botonContraTexto}>No es veridico</Text>
+                </TouchableOpacity>
               </View>
             )}
           </View>
-
-          <Text style={estilos.rutaNombre}>{item.rutaNombre}</Text>
-          <Text style={estilos.descripcion}>{item.descripcion}</Text>
-
-          {/* Barra de votos */}
-          <View style={estilos.votosContenedor}>
-            <View style={estilos.votosInfo}>
-              <View style={estilos.votoLabel}>
-                <Ionicons name="arrow-up" size={14} color={colores.exito} />
-                <Text style={estilos.votosFavor}>{item.votosFavor}</Text>
-              </View>
-              <View style={estilos.votoLabel}>
-                <Ionicons name="arrow-down" size={14} color={colores.error} />
-                <Text style={estilos.votosContra}>{item.votosContra}</Text>
-              </View>
-            </View>
-            <View style={estilos.votosBarra}>
-              <View style={[estilos.votosBarraFavor, { flex: item.votosFavor || 1 }]} />
-              <View style={[estilos.votosBarraContra, { flex: item.votosContra || 1 }]} />
-            </View>
-          </View>
-
-          {/* Botones de voto */}
-          {item.estado === 'pendiente' && (
-            <View style={estilos.votosBotones}>
-              <TouchableOpacity style={estilos.botonFavor} onPress={() => votar(item._id, 'favor')} activeOpacity={0.6}>
-                <Ionicons name="thumbs-up-outline" size={16} color="#2E7D32" />
-                <Text style={estilos.botonFavorTexto}>Es veridico</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={estilos.botonContra} onPress={() => votar(item._id, 'contra')} activeOpacity={0.6}>
-                <Ionicons name="thumbs-down-outline" size={16} color="#C62828" />
-                <Text style={estilos.botonContraTexto}>No es veridico</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-      )}
+        );
+      }}
     />
   );
 }
@@ -128,6 +158,9 @@ const estilos = StyleSheet.create({
   tipoBadgeTexto: { fontSize: 12, fontWeight: '600', color: colores.primario },
   validadoBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#E8F5E9', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
   validadoTexto: { fontSize: 12, fontWeight: '600', color: '#2E7D32' },
+  expiraBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#FFF8E1', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
+  expiraBadgeUrgente: { backgroundColor: '#FFEBEE' },
+  expiraTexto: { fontSize: 11, fontWeight: '600', color: colores.advertencia },
   rutaNombre: { fontSize: 13, color: colores.primario, fontWeight: '500', marginBottom: 4 },
   descripcion: { fontSize: 14, color: colores.texto, lineHeight: 20 },
   votosContenedor: { marginTop: 12 },

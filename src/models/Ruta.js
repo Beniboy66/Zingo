@@ -13,7 +13,7 @@ const rutaSchema = new mongoose.Schema({
   horarioFin: { type: String, default: '22:00' },
   frecuenciaMin: { type: Number, default: 15 },
   diasOperacion: { type: String, default: 'L-D' },
-  estado: { type: String, enum: ['borrador', 'en_revision', 'publicada', 'despublicada'], default: 'borrador' },
+  estado: { type: String, enum: ['borrador', 'en_revision', 'publicada', 'despublicada', 'edicion_pendiente'], default: 'borrador' },
   activa: { type: Boolean, default: true },
   consultas: { type: Number, default: 0 },
   trazo: {

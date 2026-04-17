@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { GoogleMap, useJsApiLoader, Polyline, Marker } from '@react-google-maps/api';
 import api from '../../services/api';
+import { useModal } from '../../components/Modal';
 import Icon from '../../components/Icon';
 import './Admin.css';
 
 export default function RutasPendientes() {
+  const { mostrarError } = useModal();
   const [rutas, setRutas] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [seleccionada, setSeleccionada] = useState(null);
@@ -70,7 +72,7 @@ export default function RutasPendientes() {
       setModalAprobar(false);
       cerrarDetalle();
       cargar();
-    } catch (err) { alert(err.response?.data?.mensaje || 'Error al aprobar'); }
+    } catch (err) { mostrarError(err.response?.data?.mensaje || 'Error al aprobar.'); }
     finally { setProcesando(false); }
   };
 
@@ -85,7 +87,7 @@ export default function RutasPendientes() {
       setModalRechazar(false);
       cerrarDetalle();
       cargar();
-    } catch (err) { alert(err.response?.data?.mensaje || 'Error al rechazar'); }
+    } catch (err) { mostrarError(err.response?.data?.mensaje || 'Error al rechazar.'); }
     finally { setProcesando(false); }
   };
 
@@ -103,7 +105,9 @@ export default function RutasPendientes() {
 
         <div className="pagina-header">
           <h1 className="pagina-titulo">{seleccionada.nombre}</h1>
-          <span className="badge badge-en-revision">En revision</span>
+          <span className={`badge ${seleccionada.estado === 'edicion_pendiente' ? 'badge-edicion' : 'badge-en-revision'}`}>
+            {seleccionada.estado === 'edicion_pendiente' ? 'Edicion de ruta publicada' : 'Nueva ruta en revision'}
+          </span>
         </div>
 
         {isLoaded && coords.length > 0 && (
@@ -205,10 +209,14 @@ export default function RutasPendientes() {
               <div className="modal-icono-header modal-icono-exito">
                 <Icon name="check-circle" size={32} color="#2E7D32" />
               </div>
-              <h2 style={{ textAlign: 'center' }}>Aprobar Ruta</h2>
+              <h2 style={{ textAlign: 'center' }}>
+                {seleccionada.estado === 'edicion_pendiente' ? 'Aprobar Cambios' : 'Aprobar Ruta'}
+              </h2>
               <p style={{ textAlign: 'center', color: 'var(--color-texto-secundario)', fontSize: '0.9rem', marginBottom: 20 }}>
-                La ruta <strong>"{seleccionada.nombre}"</strong> de <strong>{seleccionada.agenciaId?.nombre}</strong> sera
-                visible para todos los usuarios en la app movil y el mapa publico.
+                {seleccionada.estado === 'edicion_pendiente'
+                  ? <>Los cambios de la ruta <strong>"{seleccionada.nombre}"</strong> de <strong>{seleccionada.agenciaId?.nombre}</strong> se aplicaran a la ruta publicada.</>
+                  : <>La ruta <strong>"{seleccionada.nombre}"</strong> de <strong>{seleccionada.agenciaId?.nombre}</strong> sera visible para todos los usuarios en la app movil y el mapa publico.</>
+                }
               </p>
 
               <div className="modal-resumen">
@@ -250,10 +258,14 @@ export default function RutasPendientes() {
               <div className="modal-icono-header modal-icono-error">
                 <Icon name="x-circle" size={32} color="#C62828" />
               </div>
-              <h2 style={{ textAlign: 'center' }}>Rechazar Ruta</h2>
+              <h2 style={{ textAlign: 'center' }}>
+                {seleccionada.estado === 'edicion_pendiente' ? 'Rechazar Cambios' : 'Rechazar Ruta'}
+              </h2>
               <p style={{ textAlign: 'center', color: 'var(--color-texto-secundario)', fontSize: '0.9rem', marginBottom: 20 }}>
-                La ruta <strong>"{seleccionada.nombre}"</strong> sera devuelta a borrador.
-                El concesionario podra corregirla y reenviarla.
+                {seleccionada.estado === 'edicion_pendiente'
+                  ? <>Los cambios de <strong>"{seleccionada.nombre}"</strong> seran descartados. La ruta seguira publicada con su version anterior.</>
+                  : <>La ruta <strong>"{seleccionada.nombre}"</strong> sera devuelta a borrador. El concesionario podra corregirla y reenviarla.</>
+                }
               </p>
 
               <div className="form-grupo">
@@ -344,7 +356,9 @@ export default function RutasPendientes() {
                     <div style={{ width: 6, height: 24, borderRadius: 3, background: ruta.color }} />
                     {ruta.nombre}
                   </h3>
-                  <span className="badge badge-en-revision">En revision</span>
+                  <span className={`badge ${ruta.estado === 'edicion_pendiente' ? 'badge-edicion' : 'badge-en-revision'}`}>
+                    {ruta.estado === 'edicion_pendiente' ? 'Edicion' : 'Nueva'}
+                  </span>
                 </div>
                 <div style={{ fontSize: '0.85rem', color: 'var(--color-texto-secundario)' }}>
                   <div>{ruta.agenciaId?.nombre || 'Sin agencia'} · ${ruta.tarifa} · {ruta.horarioInicio}-{ruta.horarioFin}</div>

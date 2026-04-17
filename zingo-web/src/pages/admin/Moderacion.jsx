@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
+import { useModal } from '../../components/Modal';
 import Icon from '../../components/Icon';
 import './Admin.css';
 
@@ -20,6 +21,7 @@ const ESTADOS_COLOR = {
 };
 
 export default function Moderacion() {
+  const { mostrarConfirmar, mostrarError } = useModal();
   const [reportes, setReportes] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [filtroEstado, setFiltroEstado] = useState('');
@@ -39,15 +41,15 @@ export default function Moderacion() {
     try {
       await api.put(`/admin/reportes/${id}/resolver`);
       cargar();
-    } catch (err) { alert(err.response?.data?.mensaje || 'Error'); }
+    } catch (err) { mostrarError(err.response?.data?.mensaje || 'Error al resolver'); }
   };
 
   const eliminar = async (id) => {
-    if (!confirm('Eliminar este reporte permanentemente?')) return;
+    if (!await mostrarConfirmar('Esta accion no se puede deshacer.', { titulo: 'Eliminar reporte', textoAceptar: 'Eliminar', destructivo: true })) return;
     try {
       await api.delete(`/admin/reportes/${id}`);
       cargar();
-    } catch (err) { alert(err.response?.data?.mensaje || 'Error'); }
+    } catch (err) { mostrarError(err.response?.data?.mensaje || 'Error al eliminar'); }
   };
 
   const filtrados = reportes.filter(r => {

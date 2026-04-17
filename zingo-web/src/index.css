@@ -111,6 +111,7 @@ textarea { resize: vertical; min-height: 100px; }
 .badge-en-revision { background: #E3F2FD; color: #1565C0; }
 .badge-suspendido { background: #EFEBE9; color: #4E342E; }
 .badge-despublicada { background: #EFEBE9; color: #4E342E; }
+.badge-edicion, .badge-edicion_pendiente { background: #FFF3E0; color: #E65100; }
 
 .form-grupo {
   display: flex;

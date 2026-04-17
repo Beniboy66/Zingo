@@ -3,7 +3,7 @@ const Reporte = require('../models/Reporte');
 // GET /api/reportes/ruta/:rutaId
 exports.listarPorRuta = async (req, res, next) => {
   try {
-    const reportes = await Reporte.find({ rutaId: req.params.rutaId })
+    const reportes = await Reporte.find({ rutaId: req.params.rutaId, expiraEn: { $gt: new Date() } })
       .populate('usuarioId', 'nombre')
       .sort({ createdAt: -1 });
     res.json({ exito: true, datos: reportes });

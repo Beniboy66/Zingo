@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import api from '../services/api';
 import colores from '../utils/colores';
 
@@ -19,6 +20,7 @@ const ICONOS = {
 export default function NotificacionesScreen() {
   const [notificaciones, setNotificaciones] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const navigation = useNavigation();
 
   useEffect(() => {
     cargar();
@@ -45,6 +47,11 @@ export default function NotificacionesScreen() {
     }
   };
 
+  const navegar = async (item) => {
+    if (!item.leida) await marcarLeida(item._id);
+    navigation.navigate('Reportes');
+  };
+
   if (cargando) return <View style={estilos.cargando}><ActivityIndicator size="large" color={colores.primario} /></View>;
 
   return (
@@ -59,23 +66,31 @@ export default function NotificacionesScreen() {
           <Text style={estilos.vacioTexto}>Sin notificaciones</Text>
         </View>
       }
-      renderItem={({ item }) => (
-        <TouchableOpacity
-          style={[estilos.notifCard, !item.leida && estilos.notifNoLeida]}
-          onPress={() => !item.leida && marcarLeida(item._id)}
-          activeOpacity={0.6}
-        >
-          <View style={[estilos.iconoContenedor, !item.leida && { backgroundColor: '#E8F0FE' }]}>
-            <Ionicons name={ICONOS[item.tipo] || 'notifications-outline'} size={20} color={!item.leida ? colores.primario : colores.textoSecundario} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={estilos.notifTitulo}>{item.titulo}</Text>
-            <Text style={estilos.notifMensaje}>{item.mensaje}</Text>
-            <Text style={estilos.notifFecha}>{new Date(item.createdAt).toLocaleString('es-MX')}</Text>
-          </View>
-          {!item.leida && <View style={estilos.punto} />}
-        </TouchableOpacity>
-      )}
+      renderItem={({ item }) => {
+        const esAccionable = item.entidadTipo === 'reporte' || item.entidadTipo === 'ruta' || item.entidadTipo === 'cuenta';
+        return (
+          <TouchableOpacity
+            style={[estilos.notifCard, !item.leida && estilos.notifNoLeida]}
+            onPress={() => navegar(item)}
+            activeOpacity={0.6}
+          >
+            <View style={[estilos.iconoContenedor, !item.leida && { backgroundColor: '#E8F0FE' }]}>
+              <Ionicons name={ICONOS[item.tipo] || 'notifications-outline'} size={20} color={!item.leida ? colores.primario : colores.textoSecundario} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={estilos.notifTitulo}>{item.titulo}</Text>
+              <Text style={estilos.notifMensaje}>{item.mensaje}</Text>
+              <Text style={estilos.notifFecha}>{new Date(item.createdAt).toLocaleString('es-MX')}</Text>
+            </View>
+            <View style={{ alignItems: 'center', gap: 4 }}>
+              {!item.leida && <View style={estilos.punto} />}
+              {esAccionable && (
+                <Ionicons name="chevron-forward" size={16} color={colores.textoSecundario} />
+              )}
+            </View>
+          </TouchableOpacity>
+        );
+      }}
     />
   );
 }
@@ -91,5 +106,5 @@ const estilos = StyleSheet.create({
   notifTitulo: { fontSize: 14, fontWeight: '600', color: colores.texto },
   notifMensaje: { fontSize: 13, color: colores.textoSecundario, marginTop: 2, lineHeight: 18 },
   notifFecha: { fontSize: 11, color: colores.textoSecundario, marginTop: 6 },
-  punto: { width: 8, height: 8, borderRadius: 4, backgroundColor: colores.primario, marginTop: 4 },
+  punto: { width: 8, height: 8, borderRadius: 4, backgroundColor: colores.primario },
 });

@@ -1,4 +1,4 @@
-import { Component } from 'react';
+import { Component, useState, useEffect, useCallback } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import colores from './src/utils/colores';
+import api from './src/services/api';
 
 // Pantallas Auth
 import LoginScreen from './src/screens/LoginScreen';
@@ -32,6 +33,7 @@ const TAB_ICONS = {
   Cercanas: { focused: 'location', unfocused: 'location-outline' },
   Favoritos: { focused: 'heart', unfocused: 'heart-outline' },
   Reportes: { focused: 'flag', unfocused: 'flag-outline' },
+  Alertas: { focused: 'notifications', unfocused: 'notifications-outline' },
   Perfil: { focused: 'person', unfocused: 'person-outline' },
 };
 
@@ -65,6 +67,21 @@ class ErrorBoundary extends Component {
 }
 
 function TabsNavegacion() {
+  const [noLeidas, setNoLeidas] = useState(0);
+
+  const contarNoLeidas = useCallback(async () => {
+    try {
+      const { data } = await api.get('/notificaciones');
+      setNoLeidas(data.noLeidas || 0);
+    } catch (e) { /* silencioso */ }
+  }, []);
+
+  useEffect(() => {
+    contarNoLeidas();
+    const intervalo = setInterval(contarNoLeidas, 15000); // cada 15s
+    return () => clearInterval(intervalo);
+  }, [contarNoLeidas]);
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -73,6 +90,8 @@ function TabsNavegacion() {
           const iconName = focused ? icons.focused : icons.unfocused;
           return <Ionicons name={iconName} size={24} color={color} />;
         },
+        tabBarBadge: route.name === 'Alertas' && noLeidas > 0 ? noLeidas : undefined,
+        tabBarBadgeStyle: { backgroundColor: colores.error, fontSize: 10, fontWeight: '700' },
         tabBarActiveTintColor: colores.primario,
         tabBarInactiveTintColor: colores.textoSecundario,
         tabBarStyle: {
@@ -92,6 +111,7 @@ function TabsNavegacion() {
       <Tab.Screen name="Cercanas" component={CercanasScreen} options={{ title: 'Paradas Cercanas' }} />
       <Tab.Screen name="Favoritos" component={FavoritosScreen} options={{ title: 'Mis Favoritas' }} />
       <Tab.Screen name="Reportes" component={ReportesScreen} options={{ title: 'Reportes' }} />
+      <Tab.Screen name="Alertas" component={NotificacionesScreen} options={{ title: 'Notificaciones' }} />
       <Tab.Screen name="Perfil" component={PerfilScreen} options={{ title: 'Mi Perfil' }} />
     </Tab.Navigator>
   );
@@ -128,7 +148,6 @@ function AppNavigator() {
             <Stack.Screen name="Inicio" component={TabsNavegacion} options={{ headerShown: false }} />
             <Stack.Screen name="DetalleRuta" component={DetalleRutaScreen} options={{ title: 'Detalle de Ruta' }} />
             <Stack.Screen name="Reportar" component={ReportarScreen} options={{ title: 'Reportar Problema' }} />
-            <Stack.Screen name="Notificaciones" component={NotificacionesScreen} options={{ title: 'Notificaciones' }} />
           </>
         )}
       </Stack.Navigator>

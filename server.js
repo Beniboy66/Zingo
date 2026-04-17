@@ -40,6 +40,8 @@ app.use('/api/notificaciones', require('./src/routes/notificaciones.routes'));
 app.use('/api/favoritos', require('./src/routes/favoritos.routes'));
 app.use('/api/avisos', require('./src/routes/avisos.routes'));
 app.use('/api/admin', require('./src/routes/admin.routes'));
+app.use('/api/viaje', require('./src/routes/viaje.routes'));
+app.use('/api/lugares', require('./src/routes/lugares.routes'));
 
 // Ruta de salud
 app.get('/api/salud', (req, res) => {

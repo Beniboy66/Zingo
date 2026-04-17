@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
+import { useModal } from '../../components/Modal';
 import Icon from '../../components/Icon';
 import './Admin.css';
 
 const ROLES = { super_admin: 'Super Admin', agencia: 'Concesionario', usuario: 'Pasajero' };
 
 export default function Usuarios() {
+  const { mostrarConfirmar, mostrarError } = useModal();
   const [usuarios, setUsuarios] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [filtroRol, setFiltroRol] = useState('');
@@ -23,26 +25,26 @@ export default function Usuarios() {
   };
 
   const suspender = async (id) => {
-    if (!confirm('Suspender este usuario?')) return;
+    if (!await mostrarConfirmar('El usuario no podra acceder a su cuenta.', { titulo: 'Suspender usuario', textoAceptar: 'Suspender', destructivo: true })) return;
     try {
       await api.put(`/admin/usuarios/${id}/suspender`);
       cargar();
-    } catch (err) { alert(err.response?.data?.mensaje || 'Error'); }
+    } catch (err) { mostrarError(err.response?.data?.mensaje || 'Error al suspender'); }
   };
 
   const reactivar = async (id) => {
     try {
       await api.put(`/admin/usuarios/${id}/reactivar`);
       cargar();
-    } catch (err) { alert(err.response?.data?.mensaje || 'Error'); }
+    } catch (err) { mostrarError(err.response?.data?.mensaje || 'Error al reactivar'); }
   };
 
   const eliminar = async (id) => {
-    if (!confirm('Eliminar este usuario permanentemente?')) return;
+    if (!await mostrarConfirmar('Esta accion es permanente y no se puede deshacer.', { titulo: 'Eliminar usuario', textoAceptar: 'Eliminar', destructivo: true })) return;
     try {
       await api.delete(`/admin/usuarios/${id}`);
       cargar();
-    } catch (err) { alert(err.response?.data?.mensaje || 'Error'); }
+    } catch (err) { mostrarError(err.response?.data?.mensaje || 'Error al eliminar'); }
   };
 
   const filtrados = usuarios.filter(u => {

@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 
+const DURACION_REPORTE_MIN = 30; // minutos que dura un reporte activo
+
 const reporteSchema = new mongoose.Schema({
   usuarioId: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario', required: true },
   rutaId: { type: mongoose.Schema.Types.ObjectId, ref: 'Ruta', required: true },
@@ -7,7 +9,8 @@ const reporteSchema = new mongoose.Schema({
   descripcion: { type: String, required: true },
   estado: { type: String, enum: ['pendiente', 'validado', 'rechazado', 'resuelto'], default: 'pendiente' },
   votosFavor: { type: Number, default: 0 },
-  votosContra: { type: Number, default: 0 }
+  votosContra: { type: Number, default: 0 },
+  expiraEn: { type: Date, default: () => new Date(Date.now() + DURACION_REPORTE_MIN * 60 * 1000), index: { expires: 0 } }
 }, { timestamps: true });
 
 // HOOK 4: Cuando un usuario crea un reporte

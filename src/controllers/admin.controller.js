@@ -102,7 +102,7 @@ exports.rechazarSolicitud = async (req, res, next) => {
 // GET /api/admin/rutas-pendientes
 exports.rutasPendientes = async (req, res, next) => {
   try {
-    const rutas = await Ruta.find({ estado: 'en_revision' })
+    const rutas = await Ruta.find({ estado: { $in: ['en_revision', 'edicion_pendiente'] } })
       .populate('agenciaId', 'nombre').sort({ createdAt: -1 });
     res.json({ exito: true, datos: rutas });
   } catch (error) { next(error); }
@@ -112,7 +112,7 @@ exports.rutasPendientes = async (req, res, next) => {
 exports.aprobarRuta = async (req, res, next) => {
   try {
     const ruta = await Ruta.findOneAndUpdate(
-      { _id: req.params.id, estado: 'en_revision' },
+      { _id: req.params.id, estado: { $in: ['en_revision', 'edicion_pendiente'] } },
       { estado: 'publicada' },
       { new: true }
     );
@@ -124,13 +124,19 @@ exports.aprobarRuta = async (req, res, next) => {
 // PUT /api/admin/rutas/:id/rechazar
 exports.rechazarRuta = async (req, res, next) => {
   try {
-    const ruta = await Ruta.findOneAndUpdate(
-      { _id: req.params.id, estado: 'en_revision' },
-      { estado: 'borrador' },
+    const ruta = await Ruta.findOne({ _id: req.params.id, estado: { $in: ['en_revision', 'edicion_pendiente'] } });
+    if (!ruta) return res.status(404).json({ exito: false, mensaje: 'Ruta no encontrada o no está en revisión' });
+
+    // Si era edicion de ruta publicada, regresar a publicada (sin los cambios)
+    // Si era ruta nueva, regresar a borrador
+    const nuevoEstado = ruta.estado === 'edicion_pendiente' ? 'publicada' : 'borrador';
+    const rutaActualizada = await Ruta.findOneAndUpdate(
+      { _id: req.params.id },
+      { estado: nuevoEstado },
       { new: true }
     );
-    if (!ruta) return res.status(404).json({ exito: false, mensaje: 'Ruta no encontrada o no está en revisión' });
-    res.json({ exito: true, mensaje: 'Ruta rechazada, regresada a borrador', datos: ruta });
+    if (!rutaActualizada) return res.status(404).json({ exito: false, mensaje: 'Ruta no encontrada o no está en revisión' });
+    res.json({ exito: true, mensaje: nuevoEstado === 'publicada' ? 'Edicion rechazada, la ruta sigue publicada' : 'Ruta rechazada, regresada a borrador', datos: rutaActualizada });
   } catch (error) { next(error); }
 };
 

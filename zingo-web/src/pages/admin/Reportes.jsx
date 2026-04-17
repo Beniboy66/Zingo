@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
+import { useModal } from '../../components/Modal';
 import Icon from '../../components/Icon';
 import './Admin.css';
 
@@ -13,6 +14,7 @@ const TIPOS = {
 };
 
 export default function Reportes() {
+  const { mostrarError } = useModal();
   const [reportes, setReportes] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [rutas, setRutas] = useState([]);
@@ -55,7 +57,7 @@ export default function Reportes() {
       await api.put(`/reportes/${id}`, { estado });
       cargar();
     } catch (err) {
-      alert(err.response?.data?.mensaje || 'Error');
+      mostrarError(err.response?.data?.mensaje || 'Error al actualizar');
     }
   };
 

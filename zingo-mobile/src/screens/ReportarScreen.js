@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
 import colores from '../utils/colores';
@@ -40,7 +40,8 @@ export default function ReportarScreen({ navigation }) {
   };
 
   return (
-    <ScrollView style={estilos.contenedor} contentContainerStyle={{ padding: 20 }}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+    <ScrollView style={estilos.contenedor} contentContainerStyle={{ padding: 20 }} keyboardShouldPersistTaps="handled">
       {/* Selector de ruta */}
       <Text style={estilos.label}>Selecciona la ruta</Text>
       <View style={estilos.chips}>
@@ -91,6 +92,7 @@ export default function ReportarScreen({ navigation }) {
         <Text style={estilos.botonTexto}>{enviando ? 'Enviando...' : 'Enviar Reporte'}</Text>
       </TouchableOpacity>
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 

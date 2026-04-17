@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
+import { useModal } from '../../components/Modal';
 import Icon from '../../components/Icon';
 import './Admin.css';
 
 export default function Concesionarios() {
+  const { mostrarConfirmar, mostrarError } = useModal();
   const [concesionarios, setConcesionarios] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [expandido, setExpandido] = useState(null);
@@ -22,15 +24,15 @@ export default function Concesionarios() {
     try {
       await api.put(`/admin/concesionarios/${id}/activar`);
       cargar();
-    } catch (err) { alert(err.response?.data?.mensaje || 'Error'); }
+    } catch (err) { mostrarError(err.response?.data?.mensaje || 'Error al activar'); }
   };
 
   const desactivar = async (id) => {
-    if (!confirm('Desactivar este concesionario?')) return;
+    if (!await mostrarConfirmar('No podra operar sus rutas hasta que lo reactives.', { titulo: 'Desactivar concesionario', textoAceptar: 'Desactivar', destructivo: true })) return;
     try {
       await api.put(`/admin/concesionarios/${id}/desactivar`);
       cargar();
-    } catch (err) { alert(err.response?.data?.mensaje || 'Error'); }
+    } catch (err) { mostrarError(err.response?.data?.mensaje || 'Error al desactivar'); }
   };
 
   if (cargando) return <div className="spinner" />;
